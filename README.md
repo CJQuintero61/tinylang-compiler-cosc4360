@@ -1,6 +1,6 @@
 # TinyLang Compiler Project: Starter Package
 
-TinyLang is a deliberately small programming language used in **TAMUCC COSC 4360** to study the major stages of a compiler without requiring students to build a production-sized compiler.
+TinyLang is a deliberately small programming language used in **TAMUCC COSC 4360** to study the major stages of a compiler without requiring students to build a production-sized compiler. [You may find the original repository here](https://github.com/apace-lab/COSC4360)
 
 Across two coding assignments, you will gradually build a compiler front end and a small LLVM-based back end:
 
