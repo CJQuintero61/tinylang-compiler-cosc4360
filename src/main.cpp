@@ -1,3 +1,21 @@
+/*
+    TinyLang Compiler
+    Christian Quintero
+
+    CSOC4360 Principles of Programming Languages
+
+    This project implements a compiler for the TinyLang programming language.
+    It will be worked on through the course of the semester.
+
+    To Run:
+        cd build
+        make
+        ./tinylang <../examples/filename.tl> --<flag>
+        make clean
+    
+    Common Commands:
+        ./tinylang ../examples/valid.tl --tokens
+*/
 #include "AST.h"
 #include "CodeGen.h"
 #include "Lexer.h"
