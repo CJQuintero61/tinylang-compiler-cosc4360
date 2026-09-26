@@ -188,7 +188,7 @@ Token Lexer::lexIdentifierOrKeyword() {
 
     // if the current character is a letter, number, or underscore, then consume characters
     // until a character that is not a letter, number, or underscore is found
-    while(!atEnd() && isalnum(peek()) || peek() == '_') {
+    while (!atEnd() && (isalnum(peek()) || peek() == '_')) {
         // concatenate the character to build the current token
         input_token += advance();
     }
@@ -284,18 +284,21 @@ std::vector<Token> Lexer::tokenize() {
         if (c == '=' && peek(1) == '=') {
             tokens.push_back(makeToken(TokenKind::EqualEqual, "==", line_, column_));
             advance();
+            advance(); // move past the second '=' character
             continue;
         }
 
         if (c == '&' && peek(1) == '&') {
             tokens.push_back(makeToken(TokenKind::AndAnd, "&&", line_, column_));
             advance();
+            advance(); // move past the second '&' character
             continue;
         }
 
         if (c == '|' && peek(1) == '|') {
             tokens.push_back(makeToken(TokenKind::OrOr, "||", line_, column_));
             advance();
+            advance(); // move past the second '|' character
             continue;
         }
 
