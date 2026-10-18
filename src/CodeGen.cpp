@@ -9,6 +9,8 @@
 #include <llvm/IR/Type.h>
 #include <llvm/Support/raw_ostream.h>
 
+#include <typeinfo>
+
 CodeGenerator::CodeGenerator()
     : context_(std::make_unique<llvm::LLVMContext>()),
       module_(std::make_unique<llvm::Module>(
@@ -104,8 +106,60 @@ llvm::Value* CodeGenerator::emitExpr(const Expr& expr) {
     //   CreateICmpSLT
     //   CreateICmpSGT
     //   CreateICmpEQ
+    
+    // integer expressions return an integer constant after resolving them
+    if (typeid(expr) == typeid(IntegerExpr)) {
+        const IntegerExpr& ie = static_cast<const IntegerExpr&>(expr);
 
-    llvm::errs() << "TODO(A2): emitExpr not implemented\n";
+        return llvm::ConstantInt::get(
+            llvm::Type::getInt32Ty(*context_),
+            ie.value,
+            true
+        );
+    }
+
+    // load the variable first then perform the expression
+    else if (typeid(expr) == typeid(VariableExpr)) {
+        const VariableExpr& ve = static_cast<const VariableExpr&>(expr);
+
+        // find the slot for this variable
+        auto it = variables_.find(ve.name);
+        if (it == variables_.end()) {
+            llvm::errs() << "Unknown variable '" << ve.name << "'\n";
+            return nullptr;
+        }
+        
+        // return the loaded value
+        return builder_->CreateLoad(llvm::Type::getInt32Ty(*context_), it->second, ve.name);
+    }
+
+    else if (typeid(expr) == typeid(BinaryExpr)) {
+        const BinaryExpr& be = static_cast<const BinaryExpr&>(expr);
+        std::string op = be.op;
+
+        // recurse the left and right
+        llvm::Value* lhs = emitExpr(*be.lhs);
+        llvm::Value* rhs = emitExpr(*be.rhs);
+
+        if (lhs == nullptr || rhs == nullptr) {
+            return nullptr;
+        }
+
+        // perform the specific action based on operator
+        if (op == "+") { return builder_->CreateAdd(lhs, rhs); }
+        else if (op == "-")  { return builder_->CreateSub(lhs, rhs); }
+        else if (op == "*")  { return builder_->CreateMul(lhs, rhs); }
+        else if (op == "/")  { return builder_->CreateSDiv(lhs, rhs); }
+        else if (op == "<")  { return builder_->CreateICmpSLT(lhs, rhs); }
+        else if (op == ">")  { return builder_->CreateICmpSGT(lhs, rhs); }
+        else if (op == "==") { return builder_->CreateICmpEQ(lhs, rhs); }
+        else {
+            llvm::errs() << "Unknown operator '" + op + "'\n";
+            return nullptr;
+        }
+    }
+
+    llvm::errs() << "Unknown expression is not an integer, variable, or binary expression\n";
     return nullptr;
 }
 
