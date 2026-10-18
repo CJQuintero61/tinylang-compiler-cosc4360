@@ -71,7 +71,64 @@ bool CodeGenerator::emitStmt(const Stmt& stmt) {
     //
     // IfStmt and bool LLVM generation may be extra credit.
 
-    llvm::errs() << "TODO(A2): emitStmt not implemented\n";
+    if (typeid(stmt) == typeid(VarDeclStmt)) {
+        const VarDeclStmt& vds = static_cast<const VarDeclStmt&>(stmt);
+
+        // allocate the var space
+        auto* slot = builder_->CreateAlloca(
+            llvm::Type::getInt32Ty(*context_),
+            nullptr,
+            vds.name
+        );
+
+        // save the slot to variables_
+        variables_[vds.name] = slot;
+
+        // if there is an initializer then store the value into that slot
+        if (vds.initializer) {
+            // get the initializer value
+            llvm::Value* init = emitExpr(*vds.initializer);
+
+            if (init == nullptr) { return false; }
+
+            // store the init value into the slot
+            builder_->CreateStore(init, slot);
+        }
+        return true;
+    }
+
+    else if (typeid(stmt) == typeid(AssignStmt)) {
+        const AssignStmt& as = static_cast<const AssignStmt&>(stmt);
+
+        // find the variables stack slot
+        auto it = variables_.find(as.name);
+        if (it == variables_.end()) {
+            llvm::errs() << "Could not find '" + as.name + "' in stack\n";
+            return false;
+        }
+
+        // get the value of the expression
+        llvm::Value* value = emitExpr(*as.value);
+        if (value == nullptr) { return false; }
+
+        // store the result back
+        builder_->CreateStore(value, it->second);
+        return true;
+    }
+
+    else if (typeid(stmt) == typeid(ReturnStmt)) {
+        const ReturnStmt& rs = static_cast<const ReturnStmt&>(stmt);
+
+        // get the value being returned
+        llvm::Value* value = emitExpr(*rs.value);
+        if (value == nullptr) { return value; }
+
+        // create the return statement
+        builder_->CreateRet(value);
+        return true;
+    }
+
+    llvm::errs() << "Unknown statement type is not a var declaration, assignment, or return statement\n";
     return false;
 }
 
