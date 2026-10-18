@@ -121,7 +121,7 @@ bool CodeGenerator::emitStmt(const Stmt& stmt) {
 
         // get the value being returned
         llvm::Value* value = emitExpr(*rs.value);
-        if (value == nullptr) { return value; }
+        if (value == nullptr) { return false; }
 
         // create the return statement
         builder_->CreateRet(value);
