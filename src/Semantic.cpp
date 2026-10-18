@@ -130,6 +130,12 @@ void SemanticAnalyzer::checkBlock(const BlockStmt& block) {
 }
 
 void SemanticAnalyzer::checkStmt(const Stmt& stmt) {
+    /*
+        Checks a sentence is semantically correct
+
+        Args:
+            stmt (Stmt) - the statement to analyze
+    */
     // TODO(A2):
     //
     // VarDecl:
@@ -147,7 +153,79 @@ void SemanticAnalyzer::checkStmt(const Stmt& stmt) {
     //   - condition must be bool
     //   - analyze then/else blocks
 
-    report("TODO(A2): checkStmt not implemented");
+    if (typeid(stmt) == typeid(VarDeclStmt)) {
+        // cast to variable declaration statement
+        const VarDeclStmt& vds = static_cast<const VarDeclStmt&>(stmt);
+
+        if (vds.initializer) {
+            // require the same type as the initializer
+            Type t = checkExpr(*vds.initializer);
+
+            if (t != Type::Error && t != vds.type) {
+                report("Semantic: checkStmt(): cannot initialize '" + vds.name + "' of type " + typeName(vds.type) + " with type " + typeName(t));
+            }
+        }
+
+        // check for duplicated
+        if (!declare(vds.name, vds.type)) {
+            report("Semantic: checkStmt(): Variable '" + vds.name + "' is already declared in this scope");
+        }
+        return;
+    }
+
+    else if (typeid(stmt) == typeid(AssignStmt)) {
+        const AssignStmt& as = static_cast<const AssignStmt&>(stmt);
+
+        // check the var exists
+        Type varType = lookup(as.name);
+        if (varType == Type::Error) {
+            report("Semantic: checkStmt(): Variable '" + as.name + "' has not been declared");
+        }
+
+        // check the expression type
+        Type exprType = checkExpr(*as.value);
+
+        // checkExpr already logs if it is an error type
+
+        if (varType != exprType) {
+            report("Semantic: checkStmt(): cannot assign '" + as.name + "' of type " + typeName(varType) + " with type " + typeName(exprType));
+        }
+        return;
+    }
+
+    else if (typeid(stmt) == typeid(ReturnStmt)) {
+        const ReturnStmt& rs = static_cast<const ReturnStmt&>(stmt);
+
+        // get the return type
+        Type t = checkExpr(*rs.value);
+
+        if (t != currentReturnType_) {
+            report("Semantic: checkStmt(): Return type of expression does not match current return type");
+        }
+        return;
+    }
+
+    else if (typeid(stmt) == typeid(IfStmt)) {
+        const IfStmt& is = static_cast<const IfStmt&>(stmt);
+
+        // check the condition type is bool
+        Type con = checkExpr(*is.condition);
+        if (con != Type::Bool) {
+            report("Semantic: checkStmt(): If condition must be of type bool");
+        }
+
+        // check the blocks
+        checkBlock(*is.thenBlock);
+        
+        // if the else block exists, then check it
+        if (is.elseBlock) {
+            checkBlock(*is.elseBlock);
+        }
+        return;
+    }
+
+    report("Semantic: checkStmt(): The statement passed is not a variable declaration, assignment, return, or if statement.");
+    return;
 }
 
 Type SemanticAnalyzer::checkExpr(const Expr& expr) {
