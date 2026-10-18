@@ -2,6 +2,7 @@
 
 #include <unordered_map>
 #include <iostream>
+#include <typeinfo>
 
 void SemanticAnalyzer::enterScope() {
     scopes_.push_back({});
@@ -150,6 +151,16 @@ void SemanticAnalyzer::checkStmt(const Stmt& stmt) {
 }
 
 Type SemanticAnalyzer::checkExpr(const Expr& expr) {
+    /*
+        this function determines the static type of an expression.
+
+        Args:
+            expr (Expr) - the expression to evaluate
+        
+        Returns:
+            Type - the type of the expressions or an error if cannot be determined
+    */
+
     // TODO(A2):
     //
     // Literals:
@@ -173,6 +184,80 @@ Type SemanticAnalyzer::checkExpr(const Expr& expr) {
     //   && ||
     //      bool x bool -> bool
 
-    report("TODO(A2): checkExpr not implemented");
+    // simple int expression
+    if (typeid(expr) == typeid(IntegerExpr)) {
+        return Type::Int;
+    }
+    
+    // simple bool expression
+    else if (typeid(expr) == typeid(BoolExpr)) {
+        return Type::Bool;
+    }
+
+    // find the type of the variable
+    else if (typeid(expr) == typeid(VariableExpr)) {
+
+        // since the C++ compiler can't tell this is a variable expression at compile time,
+        // this has to be cased explicitly to a VariableExpr type to then use
+        // the name attribute to perform the lookup
+        VariableExpr var = static_cast<const VariableExpr&>(expr);
+
+        // then do the lookup since now we can access name from the struct
+        Type type = lookup(var.name);
+
+        // not found, log it
+        if (type == Type::Error) {
+            report("Use of undeclared variable: '" + var.name + "'");
+        }
+
+        return type;
+    }
+
+    // ensure the LHS and RHS agree in type
+    else if (typeid(expr) == typeid(BinaryExpr)) {
+        // same thing for binary expressions, to get the specific struct
+        // we need to cast them otherwise this won't compile
+        // binary expressions in AST.h have ExprPtr which are unique pointers
+        // so this needs to be a reference instead of a regular copy
+        // like what was done in the variable expression block
+        const BinaryExpr& binaryExpr = static_cast<const BinaryExpr&>(expr);
+
+        // recursively figure out the LHS and RHS types
+        Type lhs = checkExpr(*binaryExpr.lhs);
+        Type rhs = checkExpr(*binaryExpr.rhs);
+        std::string op = binaryExpr.op;
+
+        // if either side is an error type, then return error
+        if (lhs == Type::Error || rhs == Type::Error) {
+            return Type::Error;
+        }
+
+        // for arithmetic both must be ints
+        if (op == "+" || op == "-" || op == "*" || op == "/") {
+            // ensure both are Integers
+            if (lhs == Type::Int && rhs == Type::Int) { return Type::Int; }
+        }
+
+        // for inequalities both must be ints
+        else if (op == "<" || op == ">") {
+            // ensure both are ints
+            if (lhs == Type::Int && rhs == Type::Int) { return Type::Bool; }
+        }
+
+        // for equality both must be the same type
+        else if (op == "==") {
+            if (lhs == rhs) { return Type::Bool; }
+        }
+
+        // for logic both must be bools
+        else if (op == "&&" || op == "||") {
+            if (lhs == Type::Bool && rhs == Type::Bool) { return Type::Bool; }
+        }
+
+        report("Invalid operands for operator '" + op + "': " + typeName(lhs) + " and " + typeName(rhs));
+        return Type::Error;
+    }
+
+    report("Semantic: checkExpr(): The expression passed is not an integer, boolean, or binary expression.");
     return Type::Error;
 }
