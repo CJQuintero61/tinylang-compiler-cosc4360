@@ -56,9 +56,52 @@ bool SemanticAnalyzer::declare(const std::string& name, Type type) {
 }
 
 Type SemanticAnalyzer::lookup(const std::string& name) const {
+    /*
+        search scopes from current (innermost) to global (outermost)
+        for a variable declaration. If found return the
+        type of the var, else return an error since
+        a variable that wasn't declared is trying to
+        be used for something
+
+        Args:
+            name (str) - the name of the var to lookup
+
+        Return:
+            Type - the var type if found, else returns an error
+    */
+
     // TODO(A2):
     // Search scopes from innermost to outermost.
     // Return Type::Error if not found.
+
+    int i = scopes_.size() - 1; // start from the innermost scope
+    std::unordered_map<std::string, Type>::iterator it;
+    std::unordered_map<std::string, Type> currentScope;
+
+    /*
+        from the inner most scope (size - 1), search for the variable.
+        If not found, move to the parent scope by decrementing i.
+        Keep moving to the next outer scope until the global scope at
+        [0] and stop at -1. If still not found by now, then
+        the var hasn't been declared in any scope
+    */
+    while (i > -1) {
+        // get the current scope
+        currentScope = scopes_[i];
+
+        it = currentScope.find(name);
+        if (it != currentScope.end()) {
+            // found in the current scope
+
+            // return the variables type
+            return it->second;
+        }
+
+        // move to the parent scope
+        i--;
+    }
+
+    // not found in any scope
     return Type::Error;
 }
 
