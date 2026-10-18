@@ -1,0 +1,6 @@
+fn main(): int {
+    if (10) {
+        return 1;
+    }
+    return 0;
+}
