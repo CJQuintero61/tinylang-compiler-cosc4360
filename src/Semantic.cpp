@@ -1,5 +1,8 @@
 #include "Semantic.h"
 
+#include <unordered_map>
+#include <iostream>
+
 void SemanticAnalyzer::enterScope() {
     scopes_.push_back({});
 }
@@ -13,11 +16,43 @@ void SemanticAnalyzer::report(const std::string& message) {
 }
 
 bool SemanticAnalyzer::declare(const std::string& name, Type type) {
+    /*
+        this function checks that a variable is not decalared twice in the
+        current scope in std::vector<std::unordered_map<std::string, Type>> scopes_;
+
+        where the vector is a list of scopes that are implemented as dictionaries/maps
+        and map a variable name to a type.
+
+        conceptually, to figure out if a variable is already declared,
+        we need to look it up in the current scope. If not found, declare the var,
+        else return false due to duplicate declaration.
+
+        Args:
+            name (str) - the variable name to search for or declare
+            type (Type) - the variable type to declare
+        
+        Returns:
+            bool - true if the variable can be declared, false if the var is already declared
+    */
+
     // TODO(A2):
     // Reject duplicate declarations in the current scope only.
     //
     // Return true on success, false on duplicate.
-    return false;
+
+    // iterator to search the scopes map
+    std::unordered_map<std::string, Type>::iterator it;
+
+    // since the scopes is a stack, the current scope is at the top (back) of the stack
+    it = scopes_.back().find(name);
+    if (it != scopes_.back().end()) {
+        // if the var is already declared, return false since it's a duplicate declaration
+        return false;
+    }
+
+    // add the var to the current scope
+    scopes_.back().insert({name, type});
+    return true;
 }
 
 Type SemanticAnalyzer::lookup(const std::string& name) const {
