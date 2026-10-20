@@ -128,6 +128,63 @@ bool CodeGenerator::emitStmt(const Stmt& stmt) {
         return true;
     }
 
+    else if (typeid(stmt) == typeid(IfStmt)) {
+        const IfStmt& is = static_cast<const IfStmt&>(stmt);
+
+        // emit the condition expression
+        llvm::Value* cond = emitExpr(*is.condition);
+        if (cond == nullptr) { return false; }
+
+        // check it is a boolean value
+        if (!cond->getType()->isIntegerTy(1)) {
+            llvm::errs() << "Condition expression is not a boolean\n";
+            return false;
+        }
+
+        // create the then block
+        llvm::Function* function = builder_->GetInsertBlock()->getParent();
+
+        // create an entrypoint for the then block
+        // this is the block that will be executed if the condition is true
+        auto* then = llvm::BasicBlock::Create(*context_, "then", function);
+
+        // create an entrypoint for the else block
+        // this is the block that will be executed if the condition is false
+        auto* elseBlock = llvm::BasicBlock::Create(*context_, "else", function);
+
+        // create an entrypoint for the merge block
+        // this is the block that will be executed after the if statement
+        auto* merge = llvm::BasicBlock::Create(*context_, "merge", function);
+
+        // create the conditional branch
+        builder_->CreateCondBr(cond, then, elseBlock);
+
+        // emit the then block
+        builder_->SetInsertPoint(then);
+        if (!emitBlock(*is.thenBlock)) { return false; }
+
+        // if there is no terminator then branch to the merge block
+        if (!builder_->GetInsertBlock()->getTerminator()) {
+            builder_->CreateBr(merge);
+        }
+
+        // set the insert point to the else block
+        builder_->SetInsertPoint(elseBlock);
+        if (is.elseBlock) {
+            if (!emitBlock(*is.elseBlock)) { return false; }
+        }
+
+        // if there is no terminator then branch to the merge block
+        if (!builder_->GetInsertBlock()->getTerminator()) {
+            builder_->CreateBr(merge);
+        }
+
+        // set the insert point to the merge block
+        builder_->SetInsertPoint(merge);
+
+        return true;
+    }
+
     llvm::errs() << "Unknown statement type is not a var declaration, assignment, or return statement\n";
     return false;
 }
