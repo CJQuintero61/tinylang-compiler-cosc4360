@@ -74,13 +74,29 @@ bool CodeGenerator::emitStmt(const Stmt& stmt) {
     if (typeid(stmt) == typeid(VarDeclStmt)) {
         const VarDeclStmt& vds = static_cast<const VarDeclStmt&>(stmt);
 
-        // allocate the var space
-        auto* slot = builder_->CreateAlloca(
-            llvm::Type::getInt32Ty(*context_),
-            nullptr,
-            vds.name
-        );
+        llvm::AllocaInst* slot = nullptr;
 
+        if (vds.type == Type::Int) {
+            // allocate the var space for a 32-bit integer
+            slot = builder_->CreateAlloca(
+                llvm::Type::getInt32Ty(*context_),
+                nullptr,
+                vds.name
+            );
+        }
+        else if (vds.type == Type::Bool) {
+            // allocate the var space for a bool
+            slot = builder_->CreateAlloca(
+                llvm::Type::getInt1Ty(*context_),
+                nullptr,
+                vds.name
+            );
+        }
+        else {
+            llvm::errs() << "Unknown variable type for '" + vds.name + "'\n";
+            return false;
+        }
+        
         // save the slot to variables_
         variables_[vds.name] = slot;
 
@@ -253,9 +269,9 @@ llvm::Value* CodeGenerator::emitExpr(const Expr& expr) {
             llvm::errs() << "Unknown variable '" << ve.name << "'\n";
             return nullptr;
         }
-        
-        // return the loaded value
-        return builder_->CreateLoad(llvm::Type::getInt32Ty(*context_), it->second, ve.name);
+
+        llvm::Type* slotType = it->second->getAllocatedType();
+        return builder_->CreateLoad(slotType, it->second, ve.name);
     }
 
     else if (typeid(expr) == typeid(BinaryExpr)) {
@@ -278,6 +294,8 @@ llvm::Value* CodeGenerator::emitExpr(const Expr& expr) {
         else if (op == "<")  { return builder_->CreateICmpSLT(lhs, rhs); }
         else if (op == ">")  { return builder_->CreateICmpSGT(lhs, rhs); }
         else if (op == "==") { return builder_->CreateICmpEQ(lhs, rhs); }
+        else if (op == "&&") { return builder_->CreateAnd(lhs, rhs); }
+        else if (op == "||") { return builder_->CreateOr(lhs, rhs); }
         else {
             llvm::errs() << "Unknown operator '" + op + "'\n";
             return nullptr;
