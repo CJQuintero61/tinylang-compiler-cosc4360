@@ -190,13 +190,11 @@ tests I made for testing code gen with the `--emit-llvm` flag
 
 ### Test 16
 
-if blocks should fail since I didn't do the extra credit. This may change when I do corrections.
+if blocks should create code correctly
 
 - created
-- expected - fail
-- result - fail
-
-Unknown statement type is not a var declaration, assignment, or return statement
+- expected - pass
+- result - pass
 
 ### Test 17
 
@@ -255,12 +253,11 @@ code gen calls divide properly
 
 ### Test 24
 
-code gen fails to generate bool statements since i didn't do extra credit
+I did the extra credit for the corrections and this test passes now.
+This test is just a simple boolean variable declaration.
 
-- expected - fail
-- result - fail
-
-Unknown expression is not an integer, variable, or binary expression
+- expected - pass
+- result - pass
 
 ### Test 25
 
@@ -298,3 +295,17 @@ entry:
   ret i32 %x1
 }
 ```
+
+## Test 31
+
+tests that boolean logic `||` and `&&` work correctly
+
+- expected - pass
+- result - pass
+
+## Test 32
+
+Tests that deeply nested variables compute correctly
+
+- expected - pass
+- result - pass
