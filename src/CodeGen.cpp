@@ -232,6 +232,17 @@ llvm::Value* CodeGenerator::emitExpr(const Expr& expr) {
         );
     }
 
+    // boolean expressions return an integer constant after resolving them
+    else if (typeid(expr) == typeid(BoolExpr)) {
+        const BoolExpr& be = static_cast<const BoolExpr&>(expr);
+
+        return llvm::ConstantInt::get(
+            llvm::Type::getInt1Ty(*context_),
+            be.value,
+            true
+        );
+    }
+
     // load the variable first then perform the expression
     else if (typeid(expr) == typeid(VariableExpr)) {
         const VariableExpr& ve = static_cast<const VariableExpr&>(expr);
